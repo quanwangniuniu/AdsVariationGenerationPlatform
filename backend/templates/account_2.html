@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elegant Auth</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fdf2f8 0%, #fef7ed 50%, #f3e8ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 20px 40px rgba(236, 72, 153, 0.1), 0 8px 16px rgba(139, 69, 19, 0.05);
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f9a8d4, #fbbf24, #c084fc);
+            border-radius: 24px 24px 0 0;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #ec4899, #f59e0b, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #a78bfa;
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        .tab-buttons {
+            display: flex;
+            background: #fef3f2;
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 32px;
+        }
+
+        .tab-button {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #f9a8d4, #fbbf24);
+            color: white;
+            box-shadow: 0 4px 12px rgba(249, 168, 212, 0.3);
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #fce7f3;
+            border-radius: 16px;
+            font-size: 16px;
+            background: #fefefe;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #f9a8d4;
+            background: #fdf2f8;
+            box-shadow: 0 0 0 4px rgba(249, 168, 212, 0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #f9a8d4, #fbbf24, #c084fc);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(249, 168, 212, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn.loading {
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #86efac;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .profile-section {
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f9a8d4, #c084fc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 32px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .profile-info {
+            background: #faf5ff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .profile-info h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .profile-info p {
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid #f9a8d4;
+            background: transparent;
+            color: #ec4899;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: #f9a8d4;
+            color: white;
+        }
+
+        .action-btn.danger {
+            border-color: #f87171;
+            color: #dc2626;
+        }
+
+        .action-btn.danger:hover {
+            background: #f87171;
+            color: white;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .forgot-password a {
+            color: #ec4899;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: #be185d;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 32px 24px;
+                margin: 20px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-circle:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            background: rgba(249, 168, 212, 0.1);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-circle:nth-child(2) {
+            width: 60px;
+            height: 60px;
+            background: rgba(192, 132, 252, 0.1);
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+
+        .floating-circle:nth-child(3) {
+            width: 100px;
+            height: 100px;
+            background: rgba(251, 191, 36, 0.1);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+    </style>
+    {% csrf_token %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
+</head>
+<body>
+    <div class="floating-elements">
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+    </div>
+
+    <div class="container">
+        <div class="logo">
+            <h1>Elegance</h1>
+            <p>Your beautiful journey starts here</p>
+        </div>
+
+        <div class="tab-buttons" id="tab-buttons">
+            <button class="tab-button active" onclick="switchTab('login')">Sign In</button>
+            <button class="tab-button" onclick="switchTab('register')">Sign Up</button>
+            <button class="tab-button" id="profile-tab" onclick="switchTab('profile')" style="display: none;">Profile</button>
+        </div>
+
+        <div class="message" id="message"></div>
+
+        <!-- Login Form -->
+        <div class="form-section active" id="login-section">
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-username">Username or Email</label>
+                    <input type="text" id="login-username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" name="password" required>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <div class="loading-spinner"></div>
+                    <span>Sign In</span>
+                </button>
+            </form>
+            <div class="forgot-password">
+                <a href="#" onclick="showForgotPassword()">Forgot your password?</a>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div class="form-section" id="register-section">
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-username">Username</label>
+                    <input type="text" id="register-username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-first-name">First Name</label>
+                    <input type="text" id="register-first-name" name="first_name">
+                </div>
+                <div class="form-group">
+                    <label for="register-last-name">Last Name</label>
+                    <input type="text" id="register-last-name" name="last_name">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password-confirm">Confirm Password</label>
+                    <input type="password" id="register-password-confirm" name="password_confirm" required>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <div class="loading-spinner"></div>
+                    <span>Create Account</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Profile Section -->
+        <div class="form-section" id="profile-section">
+            <div class="profile-section">
+                <div class="profile-avatar" id="profile-avatar">U</div>
+                <div class="profile-info" id="profile-info">
+                    <h3>Welcome back!</h3>
+                    <p>Please sign in to view your profile</p>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="showEditProfile()">Edit Profile</button>
+                    <button class="action-btn" onclick="showChangePassword()">Change Password</button>
+                    <button class="action-btn danger" onclick="logout()">Sign Out</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Profile Form -->
+        <div class="form-section" id="edit-profile-section">
+            <form id="edit-profile-form">
+                <div class="form-group">
+                    <label for="edit-email">Email</label>
+                    <input type="email" id="edit-email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-first-name">First Name</label>
+                    <input type="text" id="edit-first-name" name="first_name">
+                </div>
+                <div class="form-group">
+                    <label for="edit-last-name">Last Name</label>
+                    <input type="text" id="edit-last-name" name="last_name">
+                </div>
+                <button type="submit" class="submit-btn">
+                    <div class="loading-spinner"></div>
+                    <span>Update Profile</span>
+                </button>
+                <button type="button" class="action-btn" onclick="switchTab('profile')" style="width: 100%; margin-top: 12px;">Cancel</button>
+            </form>
+        </div>
+
+        <!-- Change Password Form -->
+        <div class="form-section" id="change-password-section">
+            <form id="change-password-form">
+                <div class="form-group">
+                    <label for="old-password">Current Password</label>
+                    <input type="password" id="old-password" name="old_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" name="new_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password-confirm">Confirm New Password</label>
+                    <input type="password" id="new-password-confirm" name="new_password_confirm" required>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <div class="loading-spinner"></div>
+                    <span>Change Password</span>
+                </button>
+                <button type="button" class="action-btn" onclick="switchTab('profile')" style="width: 100%; margin-top: 12px;">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = '/api/account';
+        let currentUser = null;
+        let authToken = localStorage.getItem('auth_token');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (authToken) {
+                verifyToken();
+            }
+            initializeForms();
+        });
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            
+            // Find the clicked button and make it active
+            const clickedButton = Array.from(document.querySelectorAll('.tab-button')).find(btn => 
+                btn.onclick.toString().includes(tabName)
+            );
+            if (clickedButton) {
+                clickedButton.classList.add('active');
+            }
+
+            // Update sections
+            document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(tabName + '-section').classList.add('active');
+
+            // Clear messages
+            hideMessage();
+        }
+
+        // API calls
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                credentials: 'include'
+            };
+
+            if (authToken) {
+                options.headers['Authorization'] = `Token ${authToken}`;
+            }
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(API_BASE_URL + endpoint, options);
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                showMessage('Network error. Please try again.', 'error');
+                return { success: false, message: 'Network error' };
+            }
+        }
+
+        // Form initialization
+        function initializeForms() {
+            // Login form
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleLogin(new FormData(e.target));
+            });
+
+            // Register form
+            document.getElementById('register-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleRegister(new FormData(e.target));
+            });
+
+            // Edit profile form
+            document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleEditProfile(new FormData(e.target));
+            });
+
+            // Change password form
+            document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleChangePassword(new FormData(e.target));
+            });
+        }
+
+        // Authentication handlers
+        async function handleLogin(formData) {
+            const btn = document.querySelector('#login-form .submit-btn');
+            setLoading(btn, true);
+
+            const data = {
+                username: formData.get('username'),
+                password: formData.get('password')
+            };
+
+            const result = await apiCall('/login/', 'POST', data);
+            
+            if (result.success) {
+                authToken = result.token;
+                localStorage.setItem('auth_token', authToken);
+                currentUser = result.user;
+                updateProfileDisplay();
+                showProfileTab();
+                switchTab('profile');
+                showMessage('Welcome back!', 'success');
+            } else {
+                if (result.errors) {
+                    // 拼接每个字段的错误信息
+                    const errorMessages = Object.entries(result.errors).map(
+                        ([field, messages]) => `${field}: ${messages.join(', ')}`
+                    ).join('; ');
+                    showMessage(errorMessages, 'error');
+                } else {
+                    showMessage(result.message || 'Login failed', 'error');
+                }
+            }
+    
+
+            setLoading(btn, false);
+        }
+
+        async function handleRegister(formData) {
+            const btn = document.querySelector('#register-form .submit-btn');
+            setLoading(btn, true);
+
+            const data = {
+                username: formData.get('username'),
+                email: formData.get('email'),
+                first_name: formData.get('first_name'),
+                last_name: formData.get('last_name'),
+                password: formData.get('password'),
+                password_confirm: formData.get('password_confirm')
+            };
+
+            const result = await apiCall('/register/', 'POST', data);
+            
+            if (result.success) {
+                authToken = result.token;
+                localStorage.setItem('auth_token', authToken);
+                currentUser = result.user;
+                updateProfileDisplay();
+                showProfileTab();
+                switchTab('profile');
+                showMessage('Account created successfully! Welcome!', 'success');
+            } else {
+                if (result.errors) {
+                    // 拼接每个字段的错误信息
+                    const errorMessages = Object.entries(result.errors).map(
+                        ([field, messages]) => `${field}: ${messages.join(', ')}`
+                    ).join('; ');
+                    showMessage(errorMessages, 'error');
+                } else {
+                showMessage(result.message || 'Registration failed', 'error');
+            }}
+
+            setLoading(btn, false);
+        }
+
+        async function handleEditProfile(formData) {
+            const btn = document.querySelector('#edit-profile-form .submit-btn');
+            setLoading(btn, true);
+
+            const data = {
+                email: formData.get('email'),
+                first_name: formData.get('first_name'),
+                last_name: formData.get('last_name')
+            };
+
+            const result = await apiCall('/profile/update/', 'PUT', data);
+            
+            if (result.success) {
+                currentUser = result.user;
+                updateProfileDisplay();
+                switchTab('profile');
+                showMessage('Profile updated successfully!', 'success');
+            } else {
+                if (result.errors) {
+                    // 拼接每个字段的错误信息
+                    const errorMessages = Object.entries(result.errors).map(
+                        ([field, messages]) => `${field}: ${messages.join(', ')}`
+                    ).join('; ');
+                    showMessage(errorMessages, 'error');
+                } 
+                else {
+                showMessage(result.message || 'Profile update failed', 'error');
+            }
+        }
+
+            setLoading(btn, false);
+        }
+
+        async function handleChangePassword(formData) {
+            const btn = document.querySelector('#change-password-form .submit-btn');
+            setLoading(btn, true);
+
+            const data = {
+                old_password: formData.get('old_password'),
+                new_password: formData.get('new_password'),
+                new_password_confirm: formData.get('new_password_confirm')
+            };
+
+            const result = await apiCall('/password/change/', 'POST', data);
+            
+            if (result.success) {
+                authToken = result.token;
+                localStorage.setItem('auth_token', authToken);
+                switchTab('profile');
+                showMessage('Password changed successfully!', 'success');
+                document.getElementById('change-password-form').reset();
+            } else {
+                if (result.errors) {
+                    // 拼接每个字段的错误信息
+                    const errorMessages = Object.entries(result.errors).map(
+                        ([field, messages]) => `${field}: ${messages.join(', ')}`
+                    ).join('; ');
+                    showMessage(errorMessages, 'error');
+                } 
+                else {
+                showMessage(result.message || 'Password change failed', 'error');
+            }
+            }
+            setLoading(btn, false);
+        }
+
+        async function verifyToken() {
+            const result = await apiCall('/verify/', 'GET');
+            
+            if (result.success) {
+                currentUser = result.user;
+                updateProfileDisplay();
+                showProfileTab();
+            } else {
+                if (result.errors) {
+                    // 拼接每个字段的错误信息
+                    const errorMessages = Object.entries(result.errors).map(
+                        ([field, messages]) => `${field}: ${messages.join(', ')}`
+                    ).join('; ');
+                    showMessage(errorMessages, 'error');
+                } 
+                else {
+                localStorage.removeItem('auth_token');
+                authToken = null;
+                hideProfileTab();
+            }
+        }
+        }
+
+        async function logout() {
+            await apiCall('/logout/', 'POST');
+            localStorage.removeItem('auth_token');
+            authToken = null;
+            currentUser = null;
+            hideProfileTab();
+            switchTab('login');
+            showMessage('Signed out successfully!', 'success');
+        }
+
+        // UI helpers
+        function showProfileTab() {
+            document.getElementById('profile-tab').style.display = 'block';
+        }
+
+        function hideProfileTab() {
+            const profileTab = document.getElementById('profile-tab');
+            profileTab.style.display = 'none';
+            
+            // If currently on profile tab, switch to login
+            if (profileTab.classList.contains('active')) {
+                switchTab('login');
+            }
+        }
+
+        function updateProfileDisplay() {
+            if (currentUser) {
+                const avatar = document.getElementById('profile-avatar');
+                const info = document.getElementById('profile-info');
+                
+                avatar.textContent = (currentUser.first_name || currentUser.username || 'U').charAt(0).toUpperCase();
+                
+                info.innerHTML = `
+                    <h3>${currentUser.first_name ? currentUser.first_name + ' ' + (currentUser.last_name || '') : currentUser.username}</h3>
+                    <p>${currentUser.email}</p>
+                    <p>Member since ${new Date(currentUser.created_at).toLocaleDateString()}</p>
+                `;
+            }
+        }
+
+        function showEditProfile() {
+            if (currentUser) {
+                document.getElementById('edit-email').value = currentUser.email || '';
+                document.getElementById('edit-first-name').value = currentUser.first_name || '';
+                document.getElementById('edit-last-name').value = currentUser.last_name || '';
+                
+                document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+                document.getElementById('edit-profile-section').classList.add('active');
+            }
+        }
+
+        function showChangePassword() {
+            document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+            document.getElementById('change-password-section').classList.add('active');
+        }
+
+        function setLoading(button, loading) {
+            const spinner = button.querySelector('.loading-spinner');
+            if (loading) {
+                button.classList.add('loading');
+                spinner.style.display = 'inline-block';
+            } else {
+                button.classList.remove('loading');
+                spinner.style.display = 'none';
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = message;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        function hideMessage() {
+            const messageEl = document.getElementById('message');
+            messageEl.style.display = 'none';
+        }
+
+        function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.content || 
+        document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        }
+
+        function showForgotPassword() {
+            showMessage('Password reset functionality coming soon!', 'success');
+        }
+    </script>
+</body>
+</html>

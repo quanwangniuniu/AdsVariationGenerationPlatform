@@ -1,0 +1,194 @@
+/**
+ * Billing Module Design Tokens
+ *
+ * Color palette, spacing, shadows, and typography tokens
+ * for the billing interface module, aligned with Account/Profile pages.
+ */
+
+:root {
+  /* === Background & Surface === */
+  --billing-bg-warm: #FFF7F2;
+  --billing-surface: #FFFFFF;
+  --billing-surface-tint: #F7F3FF;
+  --billing-surface-glass: rgba(255, 255, 255, 0.95);
+
+  /* === Text Colors === */
+  --billing-text-strong: #2D2A32;
+  --billing-text-medium: #374151;
+  --billing-text-muted: #6B7280;
+  --billing-text-accent: #8B5CF6;
+
+  /* === Gradient Colors === */
+  --billing-grad-start: #FF8FAB;
+  --billing-grad-mid: #FFB86B;
+  --billing-grad-end: #C084FC;
+  --billing-gradient-primary: linear-gradient(135deg, var(--billing-grad-start), var(--billing-grad-mid));
+  --billing-gradient-full: linear-gradient(135deg, #f9a8d4, #fbbf24, #c084fc);
+  --billing-gradient-warm: linear-gradient(135deg, #fdf2f8 0%, #fef7ed 50%, #f3e8ff 100%);
+
+  /* === Status Colors === */
+  --billing-success: #10B981;
+  --billing-success-light: #D1FAE5;
+  --billing-success-dark: #065F46;
+
+  --billing-danger: #EF4444;
+  --billing-danger-light: #FEE2E2;
+  --billing-danger-dark: #991B1B;
+
+  --billing-warning: #F59E0B;
+  --billing-warning-light: #FEF3C7;
+  --billing-warning-dark: #92400E;
+
+  --billing-info: #3B82F6;
+  --billing-info-light: #DBEAFE;
+  --billing-info-dark: #1E40AF;
+
+  /* === Border & Outline === */
+  --billing-border-light: #F3E8FF;
+  --billing-border-medium: #E9D5FF;
+  --billing-border-strong: #C084FC;
+
+  /* === Shadows === */
+  --billing-shadow-card: 0 15px 35px rgba(255, 138, 171, 0.15), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --billing-shadow-card-hover: 0 20px 45px rgba(255, 138, 171, 0.20), 0 8px 24px rgba(255, 184, 107, 0.20);
+  --billing-shadow-button: 0 6px 18px rgba(249, 168, 212, 0.35);
+  --billing-shadow-button-hover: 0 8px 24px rgba(249, 168, 212, 0.45);
+  --billing-shadow-glass: 0 8px 24px rgba(236, 72, 153, 0.12), 0 2px 8px rgba(139, 69, 19, 0.06);
+
+  /* === Spacing === */
+  --billing-space-xs: 0.25rem;   /* 4px */
+  --billing-space-sm: 0.5rem;    /* 8px */
+  --billing-space-md: 1rem;      /* 16px */
+  --billing-space-lg: 1.5rem;    /* 24px */
+  --billing-space-xl: 2rem;      /* 32px */
+  --billing-space-2xl: 3rem;     /* 48px */
+
+  /* === Border Radius === */
+  --billing-radius-sm: 0.75rem;   /* 12px */
+  --billing-radius-md: 1rem;      /* 16px */
+  --billing-radius-lg: 1.5rem;    /* 24px */
+  --billing-radius-xl: 2rem;      /* 32px */
+  --billing-radius-full: 9999px;
+
+  /* === Typography === */
+  --billing-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --billing-font-display: 'Playfair Display', Georgia, serif;
+
+  --billing-text-xs: 0.75rem;     /* 12px */
+  --billing-text-sm: 0.875rem;    /* 14px */
+  --billing-text-base: 1rem;      /* 16px */
+  --billing-text-lg: 1.125rem;    /* 18px */
+  --billing-text-xl: 1.25rem;     /* 20px */
+  --billing-text-2xl: 1.5rem;     /* 24px */
+  --billing-text-3xl: 1.875rem;   /* 30px */
+
+  /* === Z-Index === */
+  --billing-z-base: 1;
+  --billing-z-dropdown: 10;
+  --billing-z-sticky: 20;
+  --billing-z-modal: 40;
+  --billing-z-toast: 50;
+
+  /* === Transitions === */
+  --billing-transition-fast: 150ms ease-in-out;
+  --billing-transition-base: 200ms ease-in-out;
+  --billing-transition-slow: 300ms ease-in-out;
+
+  /* === Backdrop === */
+  --billing-backdrop-blur: blur(16px);
+  --billing-backdrop-overlay: rgba(0, 0, 0, 0.12);
+}
+
+/* === Utility Classes === */
+
+.billing-bg-warm {
+  background: var(--billing-bg-warm);
+}
+
+.billing-bg-gradient {
+  background: var(--billing-gradient-warm);
+}
+
+.billing-card {
+  background: var(--billing-surface-glass);
+  backdrop-filter: var(--billing-backdrop-blur);
+  border-radius: var(--billing-radius-xl);
+  box-shadow: var(--billing-shadow-card);
+  transition: box-shadow var(--billing-transition-base);
+}
+
+.billing-card:hover {
+  box-shadow: var(--billing-shadow-card-hover);
+}
+
+.billing-card-glass {
+  background: var(--billing-surface-glass);
+  backdrop-filter: var(--billing-backdrop-blur);
+  border-radius: var(--billing-radius-lg);
+  border: 2px solid var(--billing-border-light);
+  box-shadow: var(--billing-shadow-glass);
+}
+
+.billing-btn-primary {
+  background: var(--billing-gradient-full);
+  color: white;
+  border: none;
+  border-radius: var(--billing-radius-xl);
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  font-family: var(--billing-font-sans);
+  box-shadow: var(--billing-shadow-button);
+  transition: all var(--billing-transition-base);
+  cursor: pointer;
+}
+
+.billing-btn-primary:hover:not(:disabled) {
+  box-shadow: var(--billing-shadow-button-hover);
+  transform: translateY(-2px);
+}
+
+.billing-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.billing-btn-secondary {
+  background: var(--billing-surface);
+  color: var(--billing-text-accent);
+  border: 2px solid var(--billing-border-medium);
+  border-radius: var(--billing-radius-md);
+  padding: 0.625rem 1rem;
+  font-weight: 600;
+  font-family: var(--billing-font-sans);
+  transition: all var(--billing-transition-base);
+  cursor: pointer;
+}
+
+.billing-btn-secondary:hover:not(:disabled) {
+  background: var(--billing-surface-tint);
+  border-color: var(--billing-border-strong);
+}
+
+.billing-text-display {
+  font-family: var(--billing-font-display);
+  color: var(--billing-text-strong);
+}
+
+.billing-text-muted {
+  color: var(--billing-text-muted);
+}
+
+/* === Focus Styles (Accessibility) === */
+.billing-focus-ring:focus-visible {
+  outline: 3px solid var(--billing-border-medium);
+  outline-offset: 2px;
+}
+
+/* === Responsive utilities === */
+@media (max-width: 768px) {
+  :root {
+    --billing-space-lg: 1rem;
+    --billing-space-xl: 1.5rem;
+    --billing-radius-xl: 1.5rem;
+  }
+}

@@ -1,0 +1,570 @@
+# Development Docker Compose Configuration
+# AI Creative Agent - Full development stack with hot reloading and debugging features
+#
+# Key differences from production:
+# - Source code mounted as volumes for hot reloading
+# - Direct port exposure for all services (easier debugging)
+# - Development-optimized resource limits
+# - Additional development tools (Flower for Celery monitoring)
+# - Simplified configuration with debug mode enabled
+#
+# Usage: docker-compose -f docker-compose.dev.yml up --build
+# Individual service: docker-compose -f docker-compose.dev.yml up postgres redis backend
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Development)
+  # Primary database with exposed port for external tools (pgAdmin, DBeaver, etc.)
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-dev
+    restart: always
+    ports:
+      - "5432:5432"  # Exposed for external database tools
+    environment:
+      # Database configuration from .env file with development defaults
+      - POSTGRES_DB=${POSTGRES_DB:-mediajira_db}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_HOST_AUTH_METHOD=trust  # Simplified auth for development
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persistent database storage
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-mediajira_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M  # Limited memory for development
+        reservations:
+          memory: 256M
+
+  # Redis - Message Broker & Cache (Development)
+  # In-memory data store with exposed port for Redis CLI and monitoring tools
+  redis:
+    image: redis:7-alpine
+    container_name: redis-dev
+    restart: always
+    ports:
+      - "6379:6379"  # Exposed for Redis CLI and external tools
+    volumes:
+      - redis_data:/data  # Persistent storage for Redis data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Django Backend API Server (Development)
+  # Main application server with hot reloading and debug mode enabled
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev  # Use development Dockerfile
+    container_name: backend-dev
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"  # Exposed for direct API access
+    env_file:
+      - .env  # Load environment variables from .env file
+    environment:
+      # Database connection to containerized PostgreSQL
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      # Django development settings
+      - DEBUG=True  # Enable debug mode for development
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      # Celery configuration
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      # CRITICAL: Mount source code for hot reloading
+      # This replaces COPY in the Dockerfile for development
+      - ./backend:/app  # Mount entire backend directory
+      - ./backend/logs:/app/logs  # Persistent logging
+      # Use anonymous volume for static files to avoid permission issues
+      - /app/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Celery Worker - Default Queue (Development)
+  # Background task processor with reduced concurrency for easier debugging
+  celery-worker-default:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: celery-worker-default-dev
+    restart: always
+    # Reduced concurrency for development to make debugging easier
+    command: celery -A backend worker --loglevel=info --queues=default --concurrency=1
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app  # Hot reloading for worker code
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Celery Worker - Data Fetch Queue (Development)
+  # Handles external API calls and data fetching with development settings
+  celery-worker-data-fetch:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: celery-worker-data-fetch-dev
+    restart: always
+    command: celery -A backend worker --loglevel=info --queues=data_fetch --concurrency=1
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Celery Worker - AI Generation Queue (Development)
+  # Handles AI tasks with development settings and debugging capabilities
+  celery-worker-ai-generation:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: celery-worker-ai-generation-dev
+    restart: always
+    command: celery -A backend worker --loglevel=info --queues=ai_generation --concurrency=1
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G  # Higher memory for AI tasks
+        reservations:
+          memory: 512M
+
+  # Celery Worker - Assets Queue (Development)
+  # Handles file processing and asset management
+  celery-worker-assets:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: celery-worker-assets-dev
+    restart: always
+    command: celery -A backend worker --loglevel=info --queues=assets --concurrency=1
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Celery Worker - Billing Queue (Development)
+  # Processes billing and subscription management tasks
+  celery-worker-billing:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: celery-worker-billing-dev
+    restart: always
+    command: celery -A backend worker --loglevel=info --queues=billing --concurrency=1
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Celery Worker - Maintenance Queue (Development)
+  # Handles cleanup and maintenance tasks
+  celery-worker-maintenance:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: celery-worker-maintenance-dev
+    restart: always
+    command: celery -A backend worker --loglevel=info --queues=maintenance --concurrency=1
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Celery Beat Scheduler (Development)
+  # Manages periodic tasks with database scheduler for development
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: celery-beat-dev
+    restart: always
+    command: celery -A backend beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-mediajira_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+      - celery_beat_data:/app/celerybeat-schedule
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  # Flower - Celery Monitoring (Development Tool)
+  # Web-based monitoring interface for Celery workers and tasks
+  # This is typically only included in development for debugging
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: flower-dev
+    restart: always
+    command: ["celery", "-A", "backend", "--broker=redis://redis:6379/0", "flower", "--port=5555"]
+    ports:
+      - "5555:5555"  # Flower web interface - accessible at http://localhost:5555
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./backend/logs:/app/logs
+      - flower_data:/data
+    depends_on:
+      redis:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  # Next.js Frontend (Development)
+  # React application with hot module reloading and development server
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev  # Use development Dockerfile
+    container_name: frontend-dev
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"  # Exposed for direct frontend access
+    volumes:
+      # CRITICAL: Mount source code for hot module reloading
+      - ./frontend:/app  # Mount entire frontend directory
+      # Use anonymous volumes to prevent node_modules conflicts
+      - /app/node_modules  # Prevent host node_modules from overriding container's
+      - /app/.next  # Prevent Next.js cache conflicts
+    environment:
+      # Next.js development settings
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      # File watching configuration for Docker environments
+      - WATCHPACK_POLLING=true  # Enable polling for file changes in containers
+      - CHOKIDAR_USEPOLLING=true  # Alternative polling method for hot reload
+      # Backend API URL for client-side requests
+      - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT:-8000}
+      # Backend API URL for server-side API route proxy (within Docker network)
+      - BACKEND_API_BASE=http://backend-dev:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Nginx Reverse Proxy (Development)
+  # Routes requests and serves as single entry point
+  # In development, also useful for testing the full stack integration
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-dev
+    restart: always
+    ports:
+      - "${NGINX_PORT:-80}:80"  # Main application entry point
+    volumes:
+      # Mount nginx configuration for easy modification
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      # Serve static files from backend
+      - ./backend/static:/var/www/static:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: http --log stdout nginx:80
+    depends_on:
+      nginx:
+        condition: service_started
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
+    restart: unless-stopped
+
+
+  updater:
+    build:
+      context: .
+      dockerfile: update/Dockerfile.updater
+    depends_on:
+      ngrok:
+        condition: service_started
+    environment:
+      NGROK_API_URL: http://ngrok:4040
+      STRIPE_API_BASE: https://api.stripe.com
+      BACKEND_CONTAINER: backend-dev
+    restart: on-failure
+    volumes:
+      - ./update/update_ngrok_env.sh:/app/update_ngrok_env.sh
+      - ./.env:/app/.env
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+
+  # Optional: pgAdmin for PostgreSQL management (Development only)
+  # Uncomment to enable a web-based PostgreSQL administration tool
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: pgadmin-dev
+  #   restart: always
+  #   ports:
+  #     - "5050:80"
+  #   environment:
+  #     - PGADMIN_DEFAULT_EMAIL=admin@example.com
+  #     - PGADMIN_DEFAULT_PASSWORD=admin
+  #   volumes:
+  #     - pgadmin_data:/var/lib/pgadmin
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # Optional: Redis Commander for Redis management (Development only)
+  # Uncomment to enable a web-based Redis administration tool
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: redis-commander-dev
+  #   restart: always
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     - REDIS_HOSTS=local:redis:6379
+  #   depends_on:
+  #     redis:
+  #       condition: service_started
+
+# Named Volumes for Persistent Data Storage
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  celery_beat_data:
+    driver: local
+  flower_data:
+    driver: local
+  # Uncomment if using optional development tools
+  # pgadmin_data:
+  #   driver: local
+
+# Networks
+# Using default bridge network for simple service communication
+# All services communicate via Docker's built-in DNS resolution

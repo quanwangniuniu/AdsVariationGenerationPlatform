@@ -1,0 +1,3 @@
+"""Shared billing constants."""
+
+MANUAL_AUTORENEW_DISABLED_FLAG = "[MANUAL_AUTO_RENEW_DISABLED]"

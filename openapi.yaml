@@ -1,0 +1,637 @@
+openapi: 3.0.0
+info:
+  title: AI Creative Agent API
+  description: Backend API for AI-powered advertisement variant generation and creative analytics
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost/api
+    description: Development server
+  - url: https://your-domain.com/api
+    description: Production server
+
+security:
+  - TokenAuth: []
+
+components:
+  securitySchemes:
+    TokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication. Format: "Token <your-token>"
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        phone:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        website:
+          type: string
+          format: uri
+          nullable: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        gender:
+          type: string
+          enum: [M, F, O]
+          nullable: true
+
+    AdVariant:
+      type: object
+      properties:
+        id:
+          type: integer
+        original_ad:
+          type: string
+        original_ad_title:
+          type: string
+        original_ad_image:
+          type: string
+          format: uri
+        user:
+          type: integer
+        user_username:
+          type: string
+        variant_title:
+          type: string
+        variant_description:
+          type: string
+        variant_image_url:
+          type: string
+          format: uri
+        ai_generation_params:
+          type: object
+        ai_agent_platform:
+          type: string
+        generation_status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        ai_prompt_used:
+          type: string
+        ai_response_metadata:
+          type: object
+        generation_requested_at:
+          type: string
+          format: date-time
+        generation_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        generation_duration:
+          type: number
+          nullable: true
+        confidence_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          nullable: true
+
+    Creative:
+      type: object
+      properties:
+        ad_creative_id:
+          type: string
+        advertiser:
+          $ref: '#/components/schemas/Advertiser'
+        format:
+          type: string
+          enum: [text, image, video]
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+        video_link:
+          type: string
+          format: uri
+          nullable: true
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        target_domain:
+          type: string
+          nullable: true
+        first_shown:
+          type: string
+          format: date-time
+        last_shown:
+          type: string
+          format: date-time
+        details_link:
+          type: string
+          format: uri
+        region:
+          type: string
+          nullable: true
+        platform:
+          type: string
+          enum: [PLAY, MAPS, SEARCH, SHOPPING, YOUTUBE]
+          nullable: true
+        fetched_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        aspect_ratio:
+          type: number
+          nullable: true
+        duration_days:
+          type: integer
+          nullable: true
+
+    Advertiser:
+      type: object
+      properties:
+        advertiser_id:
+          type: string
+        name:
+          type: string
+        first_seen_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_seen_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        creatives_count:
+          type: integer
+
+    AdVariantFeedback:
+      type: object
+      properties:
+        id:
+          type: integer
+        variant:
+          type: integer
+        variant_title:
+          type: string
+        user:
+          type: integer
+        user_username:
+          type: string
+        is_approved:
+          type: boolean
+          nullable: true
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+        feedback_text:
+          type: string
+          nullable: true
+        feedback_details:
+          type: object
+          nullable: true
+        approval_status:
+          type: string
+          enum: [Approved, Rejected, Pending]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Watch:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        advertiser_ids:
+          type: string
+          nullable: true
+        text:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        platform:
+          type: string
+          nullable: true
+        creative_format:
+          type: string
+          nullable: true
+        political_ads:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+paths:
+  /account/register/:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - password_confirm
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                password_confirm:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                phone:
+                  type: string
+                bio:
+                  type: string
+                location:
+                  type: string
+                birth_date:
+                  type: string
+                  format: date
+                website:
+                  type: string
+                  format: uri
+                avatar:
+                  type: string
+                  format: uri
+                gender:
+                  type: string
+                  enum: [M, F, O]
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+        '400':
+          description: Registration failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  errors:
+                    type: object
+
+  /account/login/:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+        '400':
+          description: Login failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  errors:
+                    type: object
+
+  /advariants/ad-variants/:
+    get:
+      tags:
+        - Ad Variants
+      summary: List ad variants
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad variants retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdVariant'
+    post:
+      tags:
+        - Ad Variants
+      summary: Create ad variant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - original_ad_id
+                - prompt
+              properties:
+                original_ad_id:
+                  type: string
+                prompt:
+                  type: string
+                  maxLength: 1000
+                ai_agent_platform:
+                  type: string
+                  default: dify
+      responses:
+        '202':
+          description: Ad variant creation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  variant:
+                    $ref: '#/components/schemas/AdVariant'
+                  task_id:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: object
+
+  /advariants/ad-variants/{id}/:
+    get:
+      tags:
+        - Ad Variants
+      summary: Get ad variant details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad variant details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdVariant'
+        '404':
+          description: Ad variant not found
+    patch:
+      tags:
+        - Ad Variants
+      summary: Update ad variant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variant_title:
+                  type: string
+                variant_description:
+                  type: string
+      responses:
+        '200':
+          description: Ad variant updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdVariant'
+    delete:
+      tags:
+        - Ad Variants
+      summary: Delete ad variant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Ad variant deleted successfully
+
+  /adspark/creatives/:
+    get:
+      tags:
+        - Creatives
+      summary: List creatives
+      security: []
+      parameters:
+        - name: advertiser_id
+          in: query
+          schema:
+            type: string
+        - name: advertiser_name
+          in: query
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [text, image, video]
+        - name: platform
+          in: query
+          schema:
+            type: string
+            enum: [PLAY, MAPS, SEARCH, SHOPPING, YOUTUBE]
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: target_domain
+          in: query
+          schema:
+            type: string
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: min_width
+          in: query
+          schema:
+            type: integer
+        - name: min_height
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: ordering
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Creatives retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Creative'

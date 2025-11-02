@@ -1,0 +1,144 @@
+/**
+ * Template feature design tokens.
+ * Defines CSS custom properties aligned with Template module styling guide.
+ */
+
+:root {
+  --template-bg-warm: #FFF7F2;
+  --template-surface: #FFFFFF;
+  --template-surface-soft: #FFF9F5;
+  --template-surface-tint: #F9F5FF;
+
+  --template-text-primary: #2C2738;
+  --template-text-secondary: #5B5671;
+  --template-text-muted: #8A829F;
+  --template-text-accent: #8B5CF6;
+
+  --template-gradient-primary: linear-gradient(135deg, #FF8FAB, #FFB86B);
+  --template-gradient-pill: linear-gradient(135deg, rgba(253, 213, 240, 1), rgba(255, 222, 201, 1));
+  --template-gradient-subtle: linear-gradient(135deg, rgba(255, 245, 240, 0.7), rgba(249, 245, 255, 0.9));
+
+  --template-shadow-card: 0 15px 35px rgba(255, 138, 171, 0.15), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --template-shadow-hover: 0 8px 24px rgba(255, 184, 107, 0.20);
+  --template-shadow-button: 0 6px 18px rgba(255, 182, 141, 0.35);
+  --template-shadow-focus: 0 0 0 3px rgba(139, 92, 246, 0.25);
+
+  --template-radius-sm: 0.75rem;
+  --template-radius-md: 1rem;
+  --template-radius-lg: 1.5rem;
+  --template-radius-xl: 2rem;
+  --template-radius-full: 9999px;
+
+  --template-space-xs: 0.5rem;
+  --template-space-sm: 0.75rem;
+  --template-space-md: 1rem;
+  --template-space-lg: 1.5rem;
+  --template-space-xl: 2rem;
+  --template-space-xxl: 3rem;
+
+  --template-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --template-font-display: 'Playfair Display', Georgia, serif;
+  --template-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --template-text-xs: 0.75rem;
+  --template-text-sm: 0.875rem;
+  --template-text-base: 1rem;
+  --template-text-lg: 1.125rem;
+  --template-text-xl: 1.5rem;
+
+  --template-z-base: 1;
+  --template-z-sticky: 10;
+  --template-z-modal: 40;
+  --template-z-toast: 50;
+
+  --template-transition-fast: 150ms ease-in-out;
+  --template-transition-base: 220ms ease-in-out;
+  --template-transition-slow: 320ms ease;
+}
+
+.template-bg {
+  background: var(--template-bg-warm);
+}
+
+.template-card {
+  background: var(--template-surface);
+  border-radius: var(--template-radius-lg);
+  box-shadow: var(--template-shadow-card);
+  transition: box-shadow var(--template-transition-base);
+}
+
+.template-card:hover {
+  box-shadow: var(--template-shadow-hover);
+}
+
+.template-pill {
+  background: var(--template-gradient-pill);
+  border-radius: var(--template-radius-full);
+  padding: 0.35rem 0.75rem;
+  font-weight: 600;
+  color: var(--template-text-primary);
+}
+
+.template-btn-primary {
+  background: var(--template-gradient-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--template-radius-full);
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  box-shadow: var(--template-shadow-button);
+  transition: transform var(--template-transition-fast), box-shadow var(--template-transition-base);
+}
+
+.template-btn-primary:focus-visible {
+  outline: 3px solid rgba(139, 92, 246, 0.32);
+  outline-offset: 2px;
+}
+
+.template-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--template-shadow-hover);
+}
+
+.template-btn-secondary {
+  background: transparent;
+  color: var(--template-text-accent);
+  border: 2px solid var(--template-text-accent);
+  border-radius: var(--template-radius-full);
+  padding: 0.65rem 1.3rem;
+  font-weight: 600;
+  transition: background var(--template-transition-base), color var(--template-transition-base);
+}
+
+.template-btn-secondary:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.template-btn-danger {
+  background: transparent;
+  color: #DC2626;
+  border: 2px solid var(--template-danger-border, #FECACA);
+  border-radius: var(--template-radius-full);
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  transition: background var(--template-transition-base), color var(--template-transition-base);
+}
+
+.template-btn-danger:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.15);
+}
+
+.template-focus-ring:focus-visible {
+  box-shadow: var(--template-shadow-focus);
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --template-radius-lg: 1.25rem;
+    --template-radius-xl: 1.75rem;
+    --template-space-lg: 1.25rem;
+    --template-space-xl: 1.75rem;
+  }
+}
+

@@ -1,0 +1,7 @@
+**/*
+!src/api/billing.ts
+!src/app/billing/**
+!src/app/workspaces/[workspaceId]/billing/**
+!src/components/billing/**
+!tests/**
+!vitest.setup.ts

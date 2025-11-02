@@ -1,0 +1,6 @@
+FROM alpine:latest
+
+RUN apk add --no-cache curl jq docker-cli
+
+WORKDIR /app
+ENTRYPOINT ["/bin/sh", "/app/update_ngrok_env.sh"]

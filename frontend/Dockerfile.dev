@@ -1,0 +1,49 @@
+# Development Dockerfile for Next.js Frontend
+# This version is optimized for development with hot module reloading (HMR)
+# Key differences from production:
+# - Uses Next.js development server instead of production build
+# - Code is mounted as volumes for hot reloading
+# - Installs all dependencies (including devDependencies)
+# - No build optimization or user security restrictions
+# - Includes debugging and development tools
+
+FROM node:20-alpine
+
+# Install compatibility layer for various Node.js packages and curl for health checks
+RUN apk add --no-cache libc6-compat curl
+
+WORKDIR /app
+
+# Set environment variables for development
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Enable file watching in Docker containers
+# These environment variables help with hot reloading in containerized environments
+ENV WATCHPACK_POLLING=true
+ENV CHOKIDAR_USEPOLLING=true
+
+# Copy package files for dependency installation
+# We still copy these for Docker layer caching benefits
+COPY package.json package-lock.json* ./
+
+# Install ALL dependencies (including devDependencies for development)
+# In production we prune dev dependencies, but we need them for development
+# Using npm install instead of npm ci to allow package-lock.json updates
+RUN npm install
+
+# In development, source code will be mounted as a volume
+# This allows for hot reloading when files change on the host
+# We don't COPY the source code here like in production
+
+# Create node_modules and .next cache directories
+# These will be used as anonymous volumes to prevent conflicts with host
+RUN mkdir -p node_modules .next
+
+# Expose the development server port
+EXPOSE 3000
+
+# Start the Next.js development server
+# This provides hot module reloading and development features
+# Unlike production which uses "npm start", we use "npm run dev"
+CMD ["npm", "run", "dev"]

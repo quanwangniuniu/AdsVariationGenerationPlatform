@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+
+{% comment %}
+Django Account Management Template
+This template extends base.html and provides complete user authentication functionality:
+- User registration with validation
+- User login/logout
+- Profile management
+- Profile editing
+- Password change functionality
+
+All forms include CSRF protection and proper Django template structure.
+{% endcomment %}
+
+{% block title %}Account Management - {{ block.super }}{% endblock %}
+
+{% block site_name %}Elegance{% endblock %}
+{% block site_tagline %}Your beautiful journey starts here{% endblock %}
+
+{% comment %}
+Navigation block - defines the tab system for different account functions
+{% endcomment %}
+{% block navigation %}
+<div class="tab-buttons" id="tab-buttons">
+    <button class="tab-button active" onclick="switchTab('login')">Sign In</button>
+    <button class="tab-button" onclick="switchTab('register')">Sign Up</button>
+    {% if user.is_authenticated %}
+    <button class="tab-button" id="profile-tab" onclick="switchTab('profile')">Profile</button>
+    {% else %}
+    <button class="tab-button" id="profile-tab" onclick="switchTab('profile')" style="display: none;">Profile</button>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% comment %}
+Main content block - contains all forms and user interface sections
+{% endcomment %}
+{% block content %}
+
+<!-- Login Form Section -->
+<div class="form-section active" id="login-section">
+    <form id="login-form" method="post" action="{% url 'account:login' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" name="email" required
+                   placeholder="Enter your email address">
+        </div>
+
+        <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" name="password" required
+                   placeholder="Enter your password">
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <div class="loading-spinner"></div>
+            <span>Sign In</span>
+        </button>
+    </form>
+
+    <div class="forgot-password">
+        <a href="#" onclick="showForgotPassword()">Forgot your password?</a>
+    </div>
+</div>
+
+<!-- Registration Form Section -->
+<div class="form-section" id="register-section">
+    <form id="register-form" method="post" action="{% url 'account:register' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="register-email">Email Address</label>
+            <input type="email" id="register-email" name="email" required
+                   placeholder="Enter your email address">
+        </div>
+
+        <div class="form-group">
+            <label for="register-display-name">Display Name</label>
+            <input type="text" id="register-display-name" name="display_name" required
+                   placeholder="How should we call you?" maxlength="50">
+        </div>
+
+        <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" name="password" required
+                   placeholder="Create a strong password" minlength="8">
+        </div>
+
+        <div class="form-group">
+            <label for="register-password-confirm">Confirm Password</label>
+            <input type="password" id="register-password-confirm" name="password_confirm" required
+                   placeholder="Confirm your password">
+        </div>
+
+        <!-- Terms and Conditions Checkbox -->
+        <div class="checkbox-group">
+            <input type="checkbox" id="terms-checkbox" name="accept_terms" required>
+            <label for="terms-checkbox">
+                I agree to the <a href="{% url 'legal:terms' %}" target="_blank">Terms of Service</a>
+                and <a href="{% url 'legal:privacy' %}" target="_blank">Privacy Policy</a>
+            </label>
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <div class="loading-spinner"></div>
+            <span>Create Account</span>
+        </button>
+    </form>
+</div>
+
+<!-- Profile Display Section -->
+<div class="form-section" id="profile-section">
+    <div class="profile-section">
+        <!-- Profile Avatar -->
+        <div class="profile-avatar" id="profile-avatar">
+            {% if user.is_authenticated and user.profile.avatar %}
+                <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_display_name }}'s avatar">
+            {% elif user.is_authenticated %}
+                {{ user.get_display_name|first|upper }}
+            {% else %}
+                U
+            {% endif %}
+        </div>
+
+        <!-- Profile Information Display -->
+        <div class="profile-info" id="profile-info">
+            {% if user.is_authenticated %}
+                <h3>{{ user.get_display_name|default:user.username }}</h3>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Member since:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+                {% if user.profile.bio %}
+                    <p class="bio">{{ user.profile.bio }}</p>
+                {% endif %}
+                <p><strong>Last login:</strong> {{ user.last_login|date:"F j, Y g:i A"|default:"Never" }}</p>
+            {% else %}
+                <h3>Welcome!</h3>
+                <p>Please sign in to view your profile</p>
+            {% endif %}
+        </div>
+
+        <!-- Profile Action Buttons -->
+        {% if user.is_authenticated %}
+        <div class="action-buttons">
+            <button class="action-btn" onclick="showEditProfile()">Edit Profile</button>
+            <button class="action-btn" onclick="showChangePassword()">Change Password</button>
+            <button class="action-btn danger" onclick="confirmLogout()">Sign Out</button>
+        </div>
+        {% else %}
+        <div class="action-buttons">
+            <button class="action-btn" onclick="switchTab('login')">Sign In</button>
+            <button class="action-btn" onclick="switchTab('register')">Create Account</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit Profile Form Section -->
+<div class="form-section" id="edit-profile-section">
+    <form id="edit-profile-form" method="post" action="{% url 'account:profile_update' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="edit-email">Email Address</label>
+            <input type="email" id="edit-email" name="email" required
+                   value="{% if user.is_authenticated %}{{ user.email }}{% endif %}">
+        </div>
+
+        <div class="form-group">
+            <label for="edit-display-name">Display Name</label>
+            <input type="text" id="edit-display-name" name="display_name" required
+                   value="{% if user.is_authenticated %}{{ user.get_display_name }}{% endif %}"
+                   maxlength="50">
+        </div>
+
+        <div class="form-group">
+            <label for="edit-bio">Bio (Optional)</label>
+            <textarea id="edit-bio" name="bio" rows="3" maxlength="200"
+                      placeholder="Tell us a bit about yourself..."
+                      style="width: 100%; padding: 16px 20px; border: 2px solid #fce7f3; border-radius: 16px; font-size: 16px; background: #fefefe; transition: all 0.3s ease; font-family: 'Inter', sans-serif; resize: vertical; min-height: 80px;">{% if user.is_authenticated and user.profile.bio %}{{ user.profile.bio }}{% endif %}</textarea>
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <div class="loading-spinner"></div>
+            <span>Update Profile</span>
+        </button>
+
+        <button type="button" class="action-btn" onclick="switchTab('profile')"
+                style="width: 100%; margin-top: 12px;">Cancel</button>
+    </form>
+</div>
+
+<!-- Change Password Form Section -->
+<div class="form-section" id="change-password-section">
+    <form id="change-password-form" method="post" action="{% url 'account:password_change' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="old-password">Current Password</label>
+            <input type="password" id="old-password" name="old_password" required
+                   placeholder="Enter your current password">
+        </div>
+
+        <div class="form-group">
+            <label for="new-password">New Password</label>
+            <input type="password" id="new-password" name="new_password" required
+                   placeholder="Enter your new password" minlength="8">
+        </div>
+
+        <div class="form-group">
+            <label for="new-password-confirm">Confirm New Password</label>
+            <input type="password" id="new-password-confirm" name="new_password_confirm" required
+                   placeholder="Confirm your new password">
+        </div>
+
+        <button type="submit" class="submit-btn">
+            <div class="loading-spinner"></div>
+            <span>Change Password</span>
+        </button>
+
+        <button type="button" class="action-btn" onclick="switchTab('profile')"
+                style="width: 100%; margin-top: 12px;">Cancel</button>
+    </form>
+</div>
+
+{% endblock %}
+
+{% comment %}
+Additional CSS for textarea styling and form enhancements
+{% endcomment %}
+{% block extra_css %}
+<style>
+    /* Textarea styling to match input fields */
+    textarea {
+        font-family: 'Inter', sans-serif !important;
+    }
+
+    textarea:focus {
+        outline: none !important;
+        border-color: #f9a8d4 !important;
+        background: #fdf2f8 !important;
+        box-shadow: 0 0 0 4px rgba(249, 168, 212, 0.1) !important;
+    }
+
+    textarea.error {
+        border-color: #f87171 !important;
+        background: #fef2f2 !important;
+    }
+
+    /* Enhanced checkbox styling */
+    .checkbox-group input[type="checkbox"] {
+        width: 18px !important;
+        height: 18px !important;
+        accent-color: #f9a8d4;
+    }
+
+    /* Profile avatar image styling */
+    .profile-avatar img {
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    /* Enhanced error state styling */
+    .form-group.error label {
+        color: #dc2626;
+    }
+
+    .form-group.error::after {
+        content: attr(data-error);
+        color: #dc2626;
+        font-size: 12px;
+        margin-top: 4px;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% comment %}
+JavaScript for enhanced functionality and Django integration
+{% endcomment %}
+{% block extra_js %}
+<script>
+    // Initialize page based on Django context
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if user is authenticated from Django context
+        const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+
+        if (isAuthenticated) {
+            showProfileTab();
+            // If there's a success message, show profile tab
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success')) {
+                switchTab('profile');
+                showMessage('Action completed successfully!', 'success');
+            }
+        } else {
+            hideProfileTab();
+        }
+
+        // Initialize all form handlers
+        initializeFormHandlers();
+
+        // Handle Django messages
+        handleDjangoMessages();
+    });
+
+    // Initialize form handlers with Django CSRF support
+    function initializeFormHandlers() {
+        // Login form handler
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLoginSubmit);
+        }
+
+        // Registration form handler
+        const registerForm = document.getElementById('register-form');
+        if (registerForm) {
+            registerForm.addEventListener('submit', handleRegisterSubmit);
+        }
+
+        // Profile update form handler
+        const profileForm = document.getElementById('edit-profile-form');
+        if (profileForm) {
+            profileForm.addEventListener('submit', handleProfileUpdateSubmit);
+        }
+
+        // Password change form handler
+        const passwordForm = document.getElementById('change-password-form');
+        if (passwordForm) {
+            passwordForm.addEventListener('submit', handlePasswordChangeSubmit);
+        }
+
+        // Real-time form validation
+        setupRealTimeValidation();
+    }
+
+    // Handle Django messages from context
+    function handleDjangoMessages() {
+        {% if messages %}
+            {% for message in messages %}
+                showMessage('{{ message|escapejs }}', '{{ message.tags }}');
+            {% endfor %}
+        {% endif %}
+    }
+
+    // Enhanced form submission with proper Django integration
+    async function handleLoginSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const submitBtn = form.querySelector('.submit-btn');
+
+        if (!validateForm(form)) {
+            showMessage('Please check your input and try again.', 'error');
+            return;
+        }
+
+        setLoading(submitBtn, true);
+
+        // Submit form using traditional Django form submission
+        form.submit();
+    }
+
+    async function handleRegisterSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const submitBtn = form.querySelector('.submit-btn');
+
+        // Validate password confirmation
+        const password = form.querySelector('#register-password').value;
+        const confirmPassword = form.querySelector('#register-password-confirm').value;
+
+        if (password !== confirmPassword) {
+            showMessage('Passwords do not match.', 'error');
+            return;
+        }
+
+        if (!form.querySelector('#terms-checkbox').checked) {
+            showMessage('Please accept the Terms of Service and Privacy Policy.', 'error');
+            return;
+        }
+
+        if (!validateForm(form)) {
+            showMessage('Please check your input and try again.', 'error');
+            return;
+        }
+
+        setLoading(submitBtn, true);
+
+        // Submit form using traditional Django form submission
+        form.submit();
+    }
+
+    async function handleProfileUpdateSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const submitBtn = form.querySelector('.submit-btn');
+
+        if (!validateForm(form)) {
+            showMessage('Please check your input and try again.', 'error');
+            return;
+        }
+
+        setLoading(submitBtn, true);
+        form.submit();
+    }
+
+    async function handlePasswordChangeSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const submitBtn = form.querySelector('.submit-btn');
+
+        // Validate password confirmation
+        const newPassword = form.querySelector('#new-password').value;
+        const confirmPassword = form.querySelector('#new-password-confirm').value;
+
+        if (newPassword !== confirmPassword) {
+            showMessage('New passwords do not match.', 'error');
+            return;
+        }
+
+        if (!validateForm(form)) {
+            showMessage('Please check your input and try again.', 'error');
+            return;
+        }
+
+        setLoading(submitBtn, true);
+        form.submit();
+    }
+
+    // Setup real-time validation
+    function setupRealTimeValidation() {
+        // Email validation
+        const emailInputs = document.querySelectorAll('input[type="email"]');
+        emailInputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                validateEmailField(this);
+            });
+        });
+
+        // Password validation
+        const passwordInputs = document.querySelectorAll('input[type="password"]');
+        passwordInputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                validatePasswordField(this);
+            });
+        });
+
+        // Password confirmation validation
+        const confirmInputs = document.querySelectorAll('input[name*="confirm"]');
+        confirmInputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                validatePasswordConfirmation(this);
+            });
+        });
+    }
+
+    // Validation helper functions
+    function validateEmailField(input) {
+        const email = input.value.trim();
+        const isValid = validateEmail(email);
+
+        if (!isValid && email) {
+            input.classList.add('error');
+            setFieldError(input, 'Please enter a valid email address');
+        } else {
+            input.classList.remove('error');
+            clearFieldError(input);
+        }
+
+        return isValid;
+    }
+
+    function validatePasswordField(input) {
+        const password = input.value;
+        const isValid = validatePassword(password);
+
+        if (!isValid && password) {
+            input.classList.add('error');
+            setFieldError(input, 'Password must be at least 8 characters long');
+        } else {
+            input.classList.remove('error');
+            clearFieldError(input);
+        }
+
+        return isValid;
+    }
+
+    function validatePasswordConfirmation(input) {
+        const password = document.querySelector('input[name="password"], input[name="new_password"]').value;
+        const confirmation = input.value;
+        const isValid = password === confirmation;
+
+        if (!isValid && confirmation) {
+            input.classList.add('error');
+            setFieldError(input, 'Passwords do not match');
+        } else {
+            input.classList.remove('error');
+            clearFieldError(input);
+        }
+
+        return isValid;
+    }
+
+    // Field error handling
+    function setFieldError(input, message) {
+        const formGroup = input.closest('.form-group');
+        formGroup.classList.add('error');
+        formGroup.setAttribute('data-error', message);
+    }
+
+    function clearFieldError(input) {
+        const formGroup = input.closest('.form-group');
+        formGroup.classList.remove('error');
+        formGroup.removeAttribute('data-error');
+    }
+
+    // UI helper functions specific to Django integration
+    function showProfileTab() {
+        const profileTab = document.getElementById('profile-tab');
+        if (profileTab) {
+            profileTab.style.display = 'block';
+        }
+    }
+
+    function hideProfileTab() {
+        const profileTab = document.getElementById('profile-tab');
+        if (profileTab) {
+            profileTab.style.display = 'none';
+
+            // If currently on profile tab, switch to login
+            if (profileTab.classList.contains('active')) {
+                switchTab('login');
+            }
+        }
+    }
+
+    function showEditProfile() {
+        // Pre-populate form with current user data
+        {% if user.is_authenticated %}
+        document.getElementById('edit-email').value = '{{ user.email|escapejs }}';
+        document.getElementById('edit-display-name').value = '{{ user.get_display_name|escapejs }}';
+        {% if user.profile.bio %}
+        document.getElementById('edit-bio').value = '{{ user.profile.bio|escapejs }}';
+        {% endif %}
+        {% endif %}
+
+        // Switch to edit profile section
+        document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+        document.getElementById('edit-profile-section').classList.add('active');
+
+        // Update tab buttons to show we're in edit mode
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    }
+
+    function showChangePassword() {
+        // Clear password form
+        document.getElementById('change-password-form').reset();
+
+        // Switch to change password section
+        document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+        document.getElementById('change-password-section').classList.add('active');
+
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    }
+
+    function confirmLogout() {
+        if (confirm('Are you sure you want to sign out?')) {
+            // Create a form to submit logout request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "account:logout" %}';
+
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = getCsrfToken();
+            form.appendChild(csrfInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function showForgotPassword() {
+        // This could redirect to a password reset page
+        window.location.href = '{% url "account:password_reset" %}';
+    }
+
+    // Enhanced message display with Django message framework integration
+    function showMessage(message, type = 'info', duration = 5000) {
+        const messageEl = document.getElementById('message');
+        if (messageEl) {
+            // Map Django message tags to our CSS classes
+            const typeMap = {
+                'debug': 'info',
+                'info': 'info',
+                'success': 'success',
+                'warning': 'error',
+                'error': 'error'
+            };
+
+            const cssClass = typeMap[type] || 'info';
+
+            messageEl.textContent = message;
+            messageEl.className = `message ${cssClass}`;
+            messageEl.style.display = 'block';
+
+            if (duration > 0) {
+                setTimeout(() => {
+                    hideMessage();
+                }, duration);
+            }
+        }
+    }
+</script>
+{% endblock %}

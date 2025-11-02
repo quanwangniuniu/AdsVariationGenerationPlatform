@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Dynamic page title -->
+    <title>{% block title %}Elegant Auth{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- CSRF Token for AJAX requests -->
+    {% csrf_token %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <!-- Base styles that will be used across all pages -->
+    <style>
+        /* Global Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Base body styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fdf2f8 0%, #fef7ed 50%, #f3e8ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Main container that can be used by all pages */
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 20px 40px rgba(236, 72, 153, 0.1), 0 8px 16px rgba(139, 69, 19, 0.05);
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative top border */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f9a8d4, #fbbf24, #c084fc);
+            border-radius: 24px 24px 0 0;
+        }
+
+        /* Logo/Header section */
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #ec4899, #f59e0b, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #a78bfa;
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        /* Tab navigation system */
+        .tab-buttons {
+            display: flex;
+            background: #fef3f2;
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 32px;
+        }
+
+        .tab-button {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #f9a8d4, #fbbf24);
+            color: white;
+            box-shadow: 0 4px 12px rgba(249, 168, 212, 0.3);
+        }
+
+        /* Form section containers */
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Form styling */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #fce7f3;
+            border-radius: 16px;
+            font-size: 16px;
+            background: #fefefe;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #f9a8d4;
+            background: #fdf2f8;
+            box-shadow: 0 0 0 4px rgba(249, 168, 212, 0.1);
+        }
+
+        .form-group input.error {
+            border-color: #f87171;
+            background: #fef2f2;
+        }
+
+        /* Checkbox styling for terms acceptance */
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .checkbox-group label {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        .checkbox-group a {
+            color: #ec4899;
+            text-decoration: none;
+        }
+
+        .checkbox-group a:hover {
+            text-decoration: underline;
+        }
+
+        /* Submit button styling */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #f9a8d4, #fbbf24, #c084fc);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(249, 168, 212, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Message display */
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #86efac;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        /* Profile section */
+        .profile-section {
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f9a8d4, #c084fc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 32px;
+            color: white;
+            font-weight: 600;
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-info {
+            background: #faf5ff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .profile-info h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .profile-info p {
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .profile-info .bio {
+            margin-top: 12px;
+            font-style: italic;
+            color: #8b5cf6;
+        }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid #f9a8d4;
+            background: transparent;
+            color: #ec4899;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .action-btn:hover {
+            background: #f9a8d4;
+            color: white;
+        }
+
+        .action-btn.danger {
+            border-color: #f87171;
+            color: #dc2626;
+        }
+
+        .action-btn.danger:hover {
+            background: #f87171;
+            color: white;
+        }
+
+        /* Links */
+        .forgot-password {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .forgot-password a {
+            color: #ec4899;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: #be185d;
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .container {
+                padding: 32px 24px;
+                margin: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        /* Floating background elements */
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-circle:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            background: rgba(249, 168, 212, 0.1);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-circle:nth-child(2) {
+            width: 60px;
+            height: 60px;
+            background: rgba(192, 132, 252, 0.1);
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+
+        .floating-circle:nth-child(3) {
+            width: 100px;
+            height: 100px;
+            background: rgba(251, 191, 36, 0.1);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        /* Block for custom page styles */
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    <!-- Floating background decoration -->
+    <div class="floating-elements">
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+    </div>
+
+    <!-- Main container - can be customized per page -->
+    <div class="container">
+        <!-- Header section - can be overridden -->
+        {% block header %}
+        <div class="logo">
+            <h1>{% block site_name %}Elegance{% endblock %}</h1>
+            <p>{% block site_tagline %}Your beautiful journey starts here{% endblock %}</p>
+        </div>
+        {% endblock %}
+
+        <!-- Navigation tabs - can be customized per page -->
+        {% block navigation %}{% endblock %}
+
+        <!-- Message display area -->
+        <div class="message" id="message"></div>
+
+        <!-- Main content area -->
+        {% block content %}
+        <p>Welcome to the site!</p>
+        {% endblock %}
+    </div>
+
+    <!-- Base JavaScript functionality -->
+    <script>
+        // Global configuration that can be used by all pages
+        const API_BASE_URL = '/api/account';
+        let currentUser = {% if user.is_authenticated %}{{ user|safe }}{% else %}null{% endif %};
+        let authToken = localStorage.getItem('auth_token');
+
+        // CSRF token helper
+        function getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.content ||
+                   document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        }
+
+        // Universal API call function
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                credentials: 'include'
+            };
+
+            if (authToken) {
+                options.headers['Authorization'] = `Token ${authToken}`;
+            }
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(API_BASE_URL + endpoint, options);
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                showMessage('Network error. Please try again.', 'error');
+                return { success: false, message: 'Network error' };
+            }
+        }
+
+        // Universal message display function
+        function showMessage(message, type = 'info') {
+            const messageEl = document.getElementById('message');
+            if (messageEl) {
+                messageEl.textContent = message;
+                messageEl.className = `message ${type}`;
+                messageEl.style.display = 'block';
+
+                setTimeout(() => {
+                    hideMessage();
+                }, 5000);
+            }
+        }
+
+        function hideMessage() {
+            const messageEl = document.getElementById('message');
+            if (messageEl) {
+                messageEl.style.display = 'none';
+            }
+        }
+
+        // Universal loading state management
+        function setLoading(button, loading) {
+            const spinner = button.querySelector('.loading-spinner');
+            if (loading) {
+                button.disabled = true;
+                if (spinner) spinner.style.display = 'inline-block';
+            } else {
+                button.disabled = false;
+                if (spinner) spinner.style.display = 'none';
+            }
+        }
+
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+            // Find the clicked button and make it active
+            const clickedButton = Array.from(document.querySelectorAll('.tab-button')).find(btn =>
+                btn.onclick && btn.onclick.toString().includes(tabName)
+            );
+            if (clickedButton) {
+                clickedButton.classList.add('active');
+            }
+
+            // Update sections
+            document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+            const targetSection = document.getElementById(tabName + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+
+            // Clear messages
+            hideMessage();
+        }
+
+        // Form validation helpers
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function validatePassword(password) {
+            return password.length >= 8;
+        }
+
+        function validateForm(form) {
+            const inputs = form.querySelectorAll('input[required]');
+            let isValid = true;
+
+            inputs.forEach(input => {
+                input.classList.remove('error');
+
+                if (!input.value.trim()) {
+                    input.classList.add('error');
+                    isValid = false;
+                } else if (input.type === 'email' && !validateEmail(input.value)) {
+                    input.classList.add('error');
+                    isValid = false;
+                } else if (input.type === 'password' && !validatePassword(input.value)) {
+                    input.classList.add('error');
+                    isValid = false;
+                }
+            });
+
+            return isValid;
+        }
+
+        // Page-specific JavaScript can be added in child templates
+        {% block extra_js %}{% endblock %}
+    </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        .welcome-title {
+            color: #28a745;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .user-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 14px;
+            color: #666;
+        }
+        .social-links {
+            margin: 20px 0;
+        }
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">{{ site_name }}</div>
+            <h1 class="welcome-title">Welcome to Our Platform!</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hello <strong>{{ user.first_name|default:user.username }}</strong>,</p>
+            
+            <p>Thank you for joining {{ site_name }}! We're excited to have you as part of our community.</p>
+            
+            <div class="user-info">
+                <strong>Your Account Details:</strong><br>
+                <strong>Username:</strong> {{ user.username }}<br>
+                <strong>Email:</strong> {{ user.email }}<br>
+                <strong>Registration Date:</strong> {{ user.created_at|date:"F d, Y" }}
+            </div>
+            
+            <p>Here are some things you can do to get started:</p>
+            <ul>
+                <li>Complete your profile information</li>
+                <li>Explore our features and services</li>
+                <li>Connect with other users</li>
+                <li>Check out our help center for tips and tricks</li>
+            </ul>
+            
+            <div style="text-align: center;">
+                <a href="{{ site_url }}" class="button">Get Started</a>
+            </div>
+            
+            <p>If you have any questions or need assistance, please don't hesitate to contact our support team. We're here to help!</p>
+            
+            <p>Welcome aboard!</p>
+            <p>The {{ site_name }} Team</p>
+        </div>
+        
+        <div class="footer">
+            <div class="social-links">
+                <a href="#">Facebook</a>
+                <a href="#">Twitter</a>
+                <a href="#">LinkedIn</a>
+                <a href="#">Instagram</a>
+            </div>
+            
+            <p>© 2025 {{ site_name }}. All rights reserved.</p>
+            <p>
+                <a href="{{ site_url }}/privacy">Privacy Policy</a> | 
+                <a href="{{ site_url }}/terms">Terms of Service</a> | 
+                <a href="{{ site_url }}/unsubscribe">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
