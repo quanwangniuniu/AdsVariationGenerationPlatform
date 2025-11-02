@@ -37,7 +37,6 @@ tmp_read.py
 tmp_read2.py
 backend/backend/test_settings_pg.py
 backend/.coveragerc
-/.github
 .coverage
 /__pycache__
 /venv

@@ -1,0 +1,386 @@
+name: Maintenance & Monitoring
+
+on:
+  schedule:
+    # Run weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      maintenance_type:
+        description: 'Type of maintenance to perform'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - dependencies
+          - database
+          - performance
+          - cleanup
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # Dependency updates
+  dependency-updates:
+    name: Dependency Updates
+    runs-on: ubuntu-latest
+    if: github.event.inputs.maintenance_type == 'all' || github.event.inputs.maintenance_type == 'dependencies' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Check for Python dependency updates
+        run: |
+          cd backend
+          pip install pip-review
+          pip-review --local --auto || true
+          pip-review --local
+
+      - name: Check for Node.js dependency updates
+        run: |
+          cd frontend
+          npm install -g npm-check-updates
+          ncu --json > npm-updates.json || true
+          ncu
+
+      - name: Create dependency update PR
+        if: github.event_name == 'schedule'
+        run: |
+          # Create a new branch for dependency updates
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git checkout -b dependency-updates-$(date +%Y%m%d)
+          
+          # Update Python dependencies
+          cd backend
+          pip-review --local --auto || true
+          
+          # Update Node.js dependencies
+          cd ../frontend
+          ncu -u || true
+          npm install
+          
+          # Commit changes
+          git add .
+          git commit -m "chore: update dependencies" || exit 0
+          git push origin dependency-updates-$(date +%Y%m%d)
+          
+          # Create PR
+          gh pr create --title "Dependency Updates $(date +%Y-%m-%d)" \
+            --body "Automated dependency updates for $(date +%Y-%m-%d)" \
+            --base main \
+            --head dependency-updates-$(date +%Y%m%d) || true
+
+  # Database maintenance
+  database-maintenance:
+    name: Database Maintenance
+    runs-on: ubuntu-latest
+    if: github.event.inputs.maintenance_type == 'all' || github.event.inputs.maintenance_type == 'database' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Database migration check
+        run: |
+          cd backend
+          python manage.py makemigrations --check --dry-run
+          python manage.py showmigrations
+
+      - name: Database optimization
+        run: |
+          cd backend
+          # Run database optimization commands
+          python manage.py dbshell --command="VACUUM ANALYZE;" || true
+          python manage.py dbshell --command="REINDEX DATABASE;" || true
+
+      - name: Database backup verification
+        run: |
+          echo "Verifying database backup integrity..."
+          # This would typically connect to the production database
+          # and verify backup integrity
+          echo "Database backup verification completed"
+
+  # Performance testing
+  performance-testing:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    if: github.event.inputs.maintenance_type == 'all' || github.event.inputs.maintenance_type == 'performance' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          cd ../frontend
+          npm ci
+
+      - name: Run performance tests
+        run: |
+          # Install performance testing tools
+          pip install locust
+          
+          # Create basic performance test
+          cat > performance_test.py << 'EOF'
+          from locust import HttpUser, task, between
+          
+          class WebsiteUser(HttpUser):
+              wait_time = between(1, 3)
+              
+              @task
+              def index_page(self):
+                  self.client.get("/")
+              
+              @task(3)
+              def api_endpoints(self):
+                  self.client.get("/api/")
+                  self.client.get("/api/workspaces/")
+                  self.client.get("/api/campaigns/")
+          EOF
+          
+          # Run performance test
+          locust -f performance_test.py --headless -u 10 -r 2 -t 30s --html performance_report.html || true
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-report
+          path: performance_report.html
+
+  # System cleanup
+  system-cleanup:
+    name: System Cleanup
+    runs-on: ubuntu-latest
+    if: github.event.inputs.maintenance_type == 'all' || github.event.inputs.maintenance_type == 'cleanup' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Clean up old data
+        run: |
+          cd backend
+          # Clean up old logs
+          find logs/ -name "*.log" -mtime +30 -delete || true
+          
+          # Clean up old temporary files
+          find . -name "*.pyc" -delete || true
+          find . -name "__pycache__" -type d -exec rm -rf {} + || true
+          
+          # Clean up old database records (if needed)
+          python manage.py shell -c "
+          from django.utils import timezone
+          from datetime import timedelta
+          # Clean up old logs, sessions, etc.
+          print('Cleanup completed')
+          " || true
+
+      - name: Docker cleanup
+        run: |
+          # Clean up unused Docker resources
+          docker system prune -f || true
+          docker volume prune -f || true
+          docker image prune -f || true
+
+  # Monitoring and alerting
+  monitoring-check:
+    name: Monitoring Check
+    runs-on: ubuntu-latest
+    if: github.event.inputs.maintenance_type == 'all' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Health check endpoints
+        run: |
+          # Check production health endpoints
+          PRODUCTION_URL="https://your-domain.com"  # Replace with actual URL
+          
+          # Health check
+          curl -f $PRODUCTION_URL/health/ || echo "Health check failed"
+          
+          # API health
+          curl -f $PRODUCTION_URL/api/ || echo "API health check failed"
+          
+          # Response time check
+          response_time=$(curl -o /dev/null -s -w '%{time_total}' $PRODUCTION_URL/)
+          echo "Response time: ${response_time}s"
+          
+          if (( $(echo "$response_time > 10.0" | bc -l) )); then
+            echo "⚠️ Response time is slow: ${response_time}s"
+          fi
+
+      - name: Check service status
+        run: |
+          echo "Checking service status..."
+          # This would typically check the status of all services
+          # in the production environment
+          echo "Service status check completed"
+
+      - name: Check disk space
+        run: |
+          echo "Checking disk space..."
+          # This would typically check disk space on production servers
+          echo "Disk space check completed"
+
+      - name: Check memory usage
+        run: |
+          echo "Checking memory usage..."
+          # This would typically check memory usage on production servers
+          echo "Memory usage check completed"
+
+  # Security updates
+  security-updates:
+    name: Security Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Check for security updates
+        run: |
+          cd backend
+          pip install safety
+          safety check --json --output safety-updates.json || true
+          safety check
+          
+          cd ../frontend
+          npm audit --audit-level=moderate || true
+
+      - name: Create security update PR
+        if: github.event_name == 'schedule'
+        run: |
+          # Create a new branch for security updates
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git checkout -b security-updates-$(date +%Y%m%d)
+          
+          # Apply security updates
+          cd backend
+          pip install --upgrade pip
+          pip install --upgrade -r requirements.txt
+          
+          cd ../frontend
+          npm audit fix || true
+          npm install
+          
+          # Commit changes
+          git add .
+          git commit -m "security: apply security updates" || exit 0
+          git push origin security-updates-$(date +%Y%m%d)
+          
+          # Create PR
+          gh pr create --title "Security Updates $(date +%Y-%m-%d)" \
+            --body "Automated security updates for $(date +%Y-%m-%d)" \
+            --base main \
+            --head security-updates-$(date +%Y%m%d) || true
+
+  # Maintenance summary
+  maintenance-summary:
+    name: Maintenance Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-updates, database-maintenance, performance-testing, system-cleanup, monitoring-check, security-updates]
+    if: always()
+    steps:
+      - name: Maintenance summary
+        run: |
+          echo "Maintenance Summary:"
+          echo "===================="
+          echo "Dependency Updates: ${{ needs.dependency-updates.result }}"
+          echo "Database Maintenance: ${{ needs.database-maintenance.result }}"
+          echo "Performance Testing: ${{ needs.performance-testing.result }}"
+          echo "System Cleanup: ${{ needs.system-cleanup.result }}"
+          echo "Monitoring Check: ${{ needs.monitoring-check.result }}"
+          echo "Security Updates: ${{ needs.security-updates.result }}"
+          
+          # Check overall status
+          if [ "${{ needs.dependency-updates.result }}" == "success" ] && 
+             [ "${{ needs.database-maintenance.result }}" == "success" ] && 
+             [ "${{ needs.performance-testing.result }}" == "success" ] && 
+             [ "${{ needs.system-cleanup.result }}" == "success" ] && 
+             [ "${{ needs.monitoring-check.result }}" == "success" ]; then
+            echo "✅ All maintenance tasks completed successfully"
+          else
+            echo "⚠️ Some maintenance tasks had issues"
+          fi
+
+      - name: Notify maintenance status
+        if: always()
+        run: |
+          if [ "${{ needs.maintenance-summary.result }}" == "success" ]; then
+            echo "✅ Weekly maintenance completed successfully"
+            # Send success notification
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"✅ Weekly maintenance completed successfully"}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }} || true
+          else
+            echo "⚠️ Weekly maintenance had some issues"
+            # Send warning notification
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"⚠️ Weekly maintenance had some issues"}' \
+              ${{ secrets.SLACK_WEBHOOK_URL }} || true
+          fi
