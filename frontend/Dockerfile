@@ -27,7 +27,14 @@ RUN npm ci
 # ------------------------------
 FROM base AS builder
 
+# Accept build arguments for API configuration
+ARG BACKEND_API_BASE=http://localhost:8000
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Set environment variables for Next.js build
 ENV NODE_ENV=production
+ENV BACKEND_API_BASE=${BACKEND_API_BASE}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 COPY package.json package-lock.json* ./
 COPY --from=deps /app/node_modules ./node_modules
